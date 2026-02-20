@@ -393,6 +393,7 @@
                   <v-btn
                     class="mr-2"
                     color="primary"
+                    :disabled="hasGenerated"
                     :loading="generating"
                     prepend-icon="mdi-brain"
                     rounded="lg"
@@ -400,7 +401,7 @@
                     variant="elevated"
                     @click="handleGenerate"
                   >
-                    Generate & Preview
+                    {{ hasGenerated ? 'Already Generated' : 'Generate & Preview' }}
                   </v-btn>
                 </div>
               </v-form>
@@ -442,6 +443,90 @@
       </v-card>
     </v-dialog>
 
+    <!-- Warning Dialog -->
+    <v-dialog v-model="warningDialog" max-width="600" persistent>
+      <v-card rounded="xl">
+        <v-card-text class="pa-8 text-center">
+          <v-icon
+            class="mb-4"
+            color="warning"
+            size="64"
+          >
+            mdi-alert
+          </v-icon>
+          <h2 class="text-h5 font-weight-bold mb-4">
+            One-Time Generation Warning
+          </h2>
+          <p class="text-body-1 mb-4">
+            On the unpaid version, each page can only be generated <strong>once</strong>.
+          </p>
+          <p class="text-body-2 text-medium-emphasis mb-6">
+            Make sure your configuration is correct before proceeding. Once generated, you cannot regenerate this page.
+          </p>
+          <div class="d-flex gap-4 justify-center">
+            <v-btn
+              color="grey"
+              rounded="lg"
+              size="large"
+              variant="outlined"
+              @click="warningDialog = false"
+            >
+              Cancel
+            </v-btn>
+            <v-btn
+              color="primary"
+              rounded="lg"
+              size="large"
+              variant="elevated"
+              @click="confirmGenerate"
+            >
+              I Understand, Generate
+            </v-btn>
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <!-- Progress Dialog -->
+    <v-dialog v-model="progressDialog" max-width="500" persistent>
+      <v-card rounded="xl">
+        <v-card-text class="pa-8">
+          <div class="text-center mb-6">
+            <v-icon
+              class="mb-4"
+              color="primary"
+              size="64"
+            >
+              mdi-brain
+            </v-icon>
+            <h2 class="text-h5 font-weight-bold mb-2">
+              Generating Your Page
+            </h2>
+            <p class="text-body-2 text-medium-emphasis">
+              {{ progressMessage }}
+            </p>
+          </div>
+
+          <v-progress-linear
+            class="mb-4"
+            color="primary"
+            height="8"
+            :model-value="progressPercent"
+            rounded
+          />
+
+          <div class="text-center">
+            <p class="text-h6 font-weight-bold gradient-text">
+              {{ progressPercent }}% Complete
+            </p>
+            <p class="text-caption text-medium-emphasis mt-2">
+              Step {{ currentStep }} of 4
+            </p>
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
   </v-container>
 </template>
 
@@ -461,6 +546,12 @@
   const successDialog = ref(false)
   const pageStatus = ref<'draft' | 'live'>('draft')
   const pageId = ref<string | null>(null)
+  const hasGenerated = ref(false)
+  const warningDialog = ref(false)
+  const progressDialog = ref(false)
+  const progressPercent = ref(0)
+  const progressMessage = ref('')
+  const currentStep = ref(0)
 
   const config = ref({
     name: '',
@@ -547,11 +638,25 @@
   }
 
   async function handleGenerate () {
+    if (hasGenerated.value) {
+      generateError.value = 'This page has already been generated. Each page can only be generated once.'
+      return
+    }
+
     const { valid } = await configForm.value.validate()
     if (!valid) return
 
+    // Show warning dialog first
+    warningDialog.value = true
+  }
+
+  async function confirmGenerate () {
+    warningDialog.value = false
     generateError.value = ''
     generating.value = true
+    progressDialog.value = true
+    progressPercent.value = 0
+    currentStep.value = 0
 
     try {
       const workerUrl = import.meta.env.VITE_CLAUDE_WORKER_URL as string | undefined
@@ -559,65 +664,156 @@
         throw new Error('Missing VITE_CLAUDE_WORKER_URL')
       }
 
-      const response = await fetch(workerUrl, {
+      let accumulatedHtml = ''
+      const basePrompt = buildClaudePrompt()
+
+      // Step 1: Initial structure (25%)
+      currentStep.value = 1
+      progressMessage.value = 'Creating page structure and header...'
+      progressPercent.value = 0
+
+      const response1 = await fetch(workerUrl, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 40_000,
+          max_tokens: 10_000,
           temperature: 0.7,
-          messages: [
-            { role: 'user', content: buildClaudePrompt() },
-          ],
+          messages: [{
+            role: 'user',
+            content: basePrompt + '\n\nSTEP 1/4: Create the DOCTYPE, html, head section with all meta tags and styles, and BEGIN the body with the hero section. Stop after the hero section.',
+          }],
         }),
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(errorText || 'Claude request failed')
+      if (!response1.ok) throw new Error('Step 1 failed')
+      const data1 = await response1.json()
+      accumulatedHtml = extractHtml(data1)
+      progressPercent.value = 25
+
+      // Step 2: Main content (50%)
+      currentStep.value = 2
+      progressMessage.value = 'Building features and content sections...'
+
+      const response2 = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 10_000,
+          temperature: 0.7,
+          messages: [{
+            role: 'user',
+            content: `Here is the HTML so far:\n${accumulatedHtml}\n\nSTEP 2/4: Continue the body section. Add the feature grid and main content sections. Do NOT close the body or html tags yet. Only return the additional HTML to append.`,
+          }],
+        }),
+      })
+
+      if (!response2.ok) throw new Error('Step 2 failed')
+      const data2 = await response2.json()
+      accumulatedHtml += '\n' + extractHtml(data2)
+      progressPercent.value = 50
+
+      // Step 3: Additional sections (75%)
+      currentStep.value = 3
+      progressMessage.value = 'Adding forms and interactive elements...'
+
+      const response3 = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 10_000,
+          temperature: 0.7,
+          messages: [{
+            role: 'user',
+            content: `Here is the HTML so far:\n${accumulatedHtml}\n\nSTEP 3/4: Continue adding social proof section, testimonials, and call-to-action sections. Do NOT close the body or html tags yet. Only return the additional HTML to append.`,
+          }],
+        }),
+      })
+
+      if (!response3.ok) throw new Error('Step 3 failed')
+      const data3 = await response3.json()
+      accumulatedHtml += '\n' + extractHtml(data3)
+      progressPercent.value = 75
+
+      // Step 4: Finalization (100%)
+      currentStep.value = 4
+      progressMessage.value = 'Finalizing and polishing your page...'
+
+      const response4 = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 10_000,
+          temperature: 0.7,
+          messages: [{
+            role: 'user',
+            content: `Here is the HTML so far:\n${accumulatedHtml}\n\nSTEP 4/4 FINAL: Add footer section, close the body and html tags properly, and add any custom scripts if needed. Polish and complete the page. Return only the final closing sections to append.`,
+          }],
+        }),
+      })
+
+      if (!response4.ok) throw new Error('Step 4 failed')
+      const data4 = await response4.json()
+      accumulatedHtml += '\n' + extractHtml(data4)
+      progressPercent.value = 100
+
+      // Clean up the final HTML
+      let finalHtml = accumulatedHtml.trim()
+
+      // Ensure proper HTML structure
+      if (!finalHtml.includes('<!DOCTYPE html>')) {
+        finalHtml = '<!DOCTYPE html>\n' + finalHtml
+      }
+      if (!finalHtml.includes('</html>')) {
+        finalHtml += '\n</html>'
+      }
+      if (!finalHtml.includes('</body>') && finalHtml.includes('<body')) {
+        finalHtml = finalHtml.replace('</html>', '</body>\n</html>')
       }
 
-      const data = await response.json()
-      const textBlocks = Array.isArray(data.content)
-        ? data.content.filter((block: { type: string }) => block.type === 'text')
-        : []
-      let html = textBlocks.map((block: { text: string }) => block.text).join('\n').trim()
-      // Extract HTML from markdown code blocks if Claude wrapped it
-      const htmlMatch = html.match(/```html\n([\s\S]*?)\n```|```\n([\s\S]*?)\n```/)
-      if (htmlMatch) {
-        html = htmlMatch[1] || htmlMatch[2]
-      }
+      console.log('Generated HTML length:', finalHtml.length)
+      console.log('First 200 chars:', finalHtml.substring(0, 200))
+      generatedHtml.value = finalHtml
 
-      html = html.trim()
-
-      if (!html || !html.includes('<html')) {
-        console.error('Full response:', html)
-        throw new Error('Claude response did not include a full HTML document')
-      }
-
-      console.log('Generated HTML length:', html.length)
-      console.log('First 200 chars:', html.substring(0, 200))
-      generatedHtml.value = html
-
-      // Save to Firebase if we have a page ID
+      // Save to Firebase
       if (pageId.value) {
-        const saved = await saveGeneratedHtml(pageId.value, html)
+        const saved = await saveGeneratedHtml(pageId.value, finalHtml)
         if (saved) {
           console.log('Generated HTML saved to Firebase')
+          await updatePage(pageId.value, { hasGenerated: true })
+          hasGenerated.value = true
         } else {
           console.warn('Failed to save generated HTML to Firebase')
         }
       }
 
-      openPreviewWindow(html)
+      progressDialog.value = false
+      openPreviewWindow(finalHtml)
     } catch (error_: any) {
       console.error('Claude generation error:', error_)
       generateError.value = error_.message || 'Failed to generate page'
+      progressDialog.value = false
     } finally {
       generating.value = false
     }
+  }
+
+  function extractHtml(data: any): string {
+    const textBlocks = Array.isArray(data.content)
+      ? data.content.filter((block: { type: string }) => block.type === 'text')
+      : []
+    let html = textBlocks.map((block: { text: string }) => block.text).join('\n').trim()
+
+    // Extract HTML from markdown code blocks if Claude wrapped it
+    const htmlMatch = html.match(/```html\n([\s\S]*?)\n```|```\n([\s\S]*?)\n```/)
+    if (htmlMatch) {
+      html = htmlMatch[1] || htmlMatch[2]
+    }
+
+    return html.trim()
   }
 
   function openPreviewWindow(html: string) {
@@ -685,6 +881,9 @@
       if (page.generatedHtml) {
         generatedHtml.value = page.generatedHtml
       }
+
+      // Load generation status
+      hasGenerated.value = page.hasGenerated || false
 
       pageStatus.value = page.status
     } catch (error) {

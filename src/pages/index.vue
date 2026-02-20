@@ -1,34 +1,27 @@
 <template>
-  <v-container class="pa-0" fluid>
+  <v-container class="pa-0 page-bg" fluid>
     <!-- App Bar with Login -->
     <v-app-bar
       class="px-4 px-md-8"
       color="transparent"
       elevation="0"
     >
-      <v-toolbar-title class="text-h5 font-weight-bold">
+      <v-toolbar-title class="text-h5 font-weight-bold brand-title">
         <span class="gradient-text">BuildAI</span>
       </v-toolbar-title>
       <v-spacer />
 
-      <v-btn
-        class="mr-2"
-        icon
-        @click="toggleTheme"
-      >
-        <v-icon>{{ theme.global.name.value === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
-      </v-btn>
-
       <v-menu offset="6" offset-y>
         <template #activator="{ props }">
           <v-btn
+            class="mr-2"
             color="primary"
             rounded="pill"
             variant="elevated"
             v-bind="props"
           >
             <v-icon start>mdi-rocket-launch</v-icon>
-            Let's Go!
+            <span class="lets-go-text">{{ t('nav.letsGo') }}</span>
             <v-icon end>mdi-chevron-down</v-icon>
           </v-btn>
         </template>
@@ -38,14 +31,63 @@
             prepend-icon="mdi-login"
             @click="loginDialog = true"
           >
-            <v-list-item-title>Login</v-list-item-title>
+            <v-list-item-title>{{ t('nav.login') }}</v-list-item-title>
           </v-list-item>
 
           <v-list-item
             prepend-icon="mdi-account-plus"
             @click="$router.push('/signup')"
           >
-            <v-list-item-title>Sign Up</v-list-item-title>
+            <v-list-item-title>{{ t('nav.signUp') }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+
+      <v-btn
+        class="mr-2"
+        icon
+        @click="toggleTheme"
+      >
+        <v-icon>{{ theme.global.name.value === 'dark' ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
+      </v-btn>
+
+
+      <v-menu offset-y>
+        <template #activator="{ props }">
+          <v-btn
+            class="mr-2 flag-button-circle"
+            icon
+            v-bind="props"
+          >
+            <div class="flag-circle-wrapper">
+              <span :class="`fi fi-${locale === 'en' ? 'gb' : 'pl'} fis`" />
+            </div>
+          </v-btn>
+        </template>
+
+        <v-list rounded="lg">
+          <v-list-item
+            :active="locale === 'en'"
+            @click="setLocale('en')"
+          >
+            <template #prepend>
+              <div class="flag-circle-wrapper-menu">
+                <span class="fi fi-gb fis" />
+              </div>
+            </template>
+            <v-list-item-title>English</v-list-item-title>
+          </v-list-item>
+
+          <v-list-item
+            :active="locale === 'pl'"
+            @click="setLocale('pl')"
+          >
+            <template #prepend>
+              <div class="flag-circle-wrapper-menu">
+                <span class="fi fi-pl fis" />
+              </div>
+            </template>
+            <v-list-item-title>Polski</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -54,14 +96,14 @@
     <!-- Hero Section -->
     <v-container class="hero-section">
       <v-row align="center" class="fill-height" justify="center">
-        <v-col class="text-center" cols="12" lg="6" md="8">
+        <v-col class="text-center" cols="12" lg="7" md="9">
           <div
             class="fade-in-up"
             :style="{ animationDelay: '0.1s' }"
           >
             <h1 class="text-h2 text-md-h1 font-weight-bold mb-4">
-              Build Apps with
-              <span class="gradient-text"> AI Power</span>
+              {{ t('hero.title') }}
+              <span class="gradient-text"> {{ t('hero.titleHighlight') }}</span>
             </h1>
           </div>
 
@@ -70,7 +112,7 @@
             :style="{ animationDelay: '0.2s' }"
           >
             <p class="text-h6 text-md-h5 mb-8 text-medium-emphasis">
-              No code. No hassle. Just intelligent automation.
+              {{ t('hero.subtitle') }}
             </p>
           </div>
 
@@ -84,9 +126,10 @@
               elevation="8"
               rounded="pill"
               size="x-large"
+              @click="scrollToPricing"
             >
               <v-icon start>mdi-rocket-launch</v-icon>
-              Get Started
+              {{ t('hero.cta') }}
             </v-btn>
           </div>
         </v-col>
@@ -136,10 +179,10 @@
       <v-row justify="center">
         <v-col class="text-center mb-12" cols="12">
           <h2 class="text-h3 font-weight-bold mb-4">
-            From Idea to Live in <span class="gradient-text">4 Steps</span>
+            {{ t('howItWorks.title') }} <span class="gradient-text">{{ t('howItWorks.titleHighlight') }}</span>
           </h2>
           <p class="text-h6 text-medium-emphasis">
-            Building your dream website has never been this simple
+            {{ t('howItWorks.subtitle') }}
           </p>
         </v-col>
       </v-row>
@@ -168,7 +211,7 @@
                       size="small"
                       variant="flat"
                     >
-                      Step {{ index + 1 }}
+                      {{ t('common.step') }} {{ index + 1 }}
                     </v-chip>
                     <h3 class="text-h5 font-weight-bold">
                       {{ step.title }}
@@ -185,23 +228,196 @@
       </v-row>
     </v-container>
 
-    <!-- Stats Section -->
-    <v-container class="py-16">
-      <v-row>
-        <v-col
-          v-for="(stat, index) in stats"
-          :key="index"
-          cols="6"
-          md="3"
-        >
-          <div class="text-center">
-            <div class="text-h3 font-weight-bold gradient-text mb-2">
-              {{ stat.value }}
-            </div>
-            <div class="text-body-1 text-medium-emphasis">
-              {{ stat.label }}
-            </div>
-          </div>
+    <!-- Pricing Section -->
+    <v-container id="pricing" class="py-16">
+      <v-row justify="center">
+        <v-col class="text-center mb-8" cols="12">
+          <h2 class="text-h3 font-weight-bold mb-4">
+            {{ t('pricing.title') }} <span class="gradient-text">{{ t('pricing.titleHighlight') }}</span>
+          </h2>
+          <p class="text-h6 text-medium-emphasis">
+            {{ t('pricing.subtitle') }}
+          </p>
+        </v-col>
+      </v-row>
+
+      <v-row justify="center">
+        <!-- Standard Pricing Card -->
+        <v-col class="mb-8" cols="12" lg="10" md="10">
+          <v-card class="pricing-card" elevation="8" rounded="xl">
+            <v-row class="ma-0" no-gutters>
+              <!-- Left Side - Price -->
+              <v-col class="pa-8 pa-md-12 d-flex flex-column justify-center align-center pricing-left" cols="12" md="4">
+                <div class="text-center">
+                  <div class="text-h1 text-md-display-1 font-weight-bold gradient-text mb-4">
+                    {{ t('pricing.price') }}
+                  </div>
+                  <div class="text-h5 text-medium-emphasis mb-6">
+                    {{ t('pricing.domainCost') }}
+                  </div>
+                  <v-btn
+                    block
+                    class="text-h6 py-6"
+                    color="primary"
+                    rounded="lg"
+                    size="x-large"
+                    to="/signup"
+                    variant="elevated"
+                  >
+                    <v-icon start>mdi-login</v-icon>
+                    {{ t('auth.login.button') }}
+                  </v-btn>
+                </div>
+              </v-col>
+
+              <!-- Right Side - Features -->
+              <v-col class="pa-8 pa-md-12" cols="12" md="8">
+                <h3 class="text-h5 font-weight-bold mb-6">{{ t('pricing.whatsIncluded') }}</h3>
+                <v-row>
+                  <v-col
+                    v-for="(feature, index) in pricingFeatures"
+                    :key="index"
+                    cols="12"
+                    sm="6"
+                  >
+                    <div class="d-flex align-start mb-2">
+                      <v-icon
+                        :color="feature.color"
+                        class="mr-3 mt-1"
+                        size="20"
+                      >
+                        {{ feature.icon }}
+                      </v-icon>
+                      <div>
+                        <div class="font-weight-bold text-body-1 mb-1">
+                          {{ feature.title }}
+                        </div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          {{ feature.description }}
+                        </div>
+                      </div>
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-col>
+            </v-row>
+          </v-card>
+        </v-col>
+
+        <!-- Custom Pricing Card -->
+        <v-col cols="12" lg="10" md="10">
+          <v-card class="pricing-card" elevation="8" rounded="xl">
+            <v-row class="ma-0" no-gutters>
+              <!-- Left Side - Custom Label -->
+              <v-col class="pa-8 pa-md-12 d-flex flex-column justify-center align-center pricing-left" cols="12" md="4">
+                <div class="text-center">
+                  <div class="text-h1 text-md-display-1 font-weight-bold gradient-text mb-4">
+                    {{ t('pricing.custom.title') }}
+                  </div>
+                  <div class="text-h5 text-medium-emphasis mb-6">
+                    {{ t('pricing.custom.subtitle') }}
+                  </div>
+                  <v-btn
+                    block
+                    class="text-h6 py-6"
+                    color="secondary"
+                    rounded="lg"
+                    size="x-large"
+                    variant="elevated"
+                    @click="scrollToContact"
+                  >
+                    <v-icon start>mdi-email-outline</v-icon>
+                    {{ t('pricing.custom.cta') }}
+                  </v-btn>
+                </div>
+              </v-col>
+
+              <!-- Right Side - Features -->
+              <v-col class="pa-8 pa-md-12" cols="12" md="8">
+                <h3 class="text-h5 font-weight-bold mb-6">{{ t('pricing.custom.whatsIncluded') }}</h3>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <div class="d-flex align-start mb-2">
+                      <v-icon class="mr-3 mt-1" color="primary" size="20">mdi-calculator</v-icon>
+                      <div>
+                        <div class="font-weight-bold text-body-1 mb-1">
+                          {{ t('pricing.custom.features.aiPricing.title') }}
+                        </div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          {{ t('pricing.custom.features.aiPricing.description') }}
+                        </div>
+                      </div>
+                    </div>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <div class="d-flex align-start mb-2">
+                      <v-icon class="mr-3 mt-1" color="secondary" size="20">mdi-puzzle-outline</v-icon>
+                      <div>
+                        <div class="font-weight-bold text-body-1 mb-1">
+                          {{ t('pricing.custom.features.complex.title') }}
+                        </div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          {{ t('pricing.custom.features.complex.description') }}
+                        </div>
+                      </div>
+                    </div>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <div class="d-flex align-start mb-2">
+                      <v-icon class="mr-3 mt-1" color="accent" size="20">mdi-database-outline</v-icon>
+                      <div>
+                        <div class="font-weight-bold text-body-1 mb-1">
+                          {{ t('pricing.custom.features.backend.title') }}
+                        </div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          {{ t('pricing.custom.features.backend.description') }}
+                        </div>
+                      </div>
+                    </div>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <div class="d-flex align-start mb-2">
+                      <v-icon class="mr-3 mt-1" color="success" size="20">mdi-account-tie</v-icon>
+                      <div>
+                        <div class="font-weight-bold text-body-1 mb-1">
+                          {{ t('pricing.custom.features.team.title') }}
+                        </div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          {{ t('pricing.custom.features.team.description') }}
+                        </div>
+                      </div>
+                    </div>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <div class="d-flex align-start mb-2">
+                      <v-icon class="mr-3 mt-1" color="info" size="20">mdi-infinity</v-icon>
+                      <div>
+                        <div class="font-weight-bold text-body-1 mb-1">
+                          {{ t('pricing.custom.features.revisions.title') }}
+                        </div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          {{ t('pricing.custom.features.revisions.description') }}
+                        </div>
+                      </div>
+                    </div>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <div class="d-flex align-start mb-2">
+                      <v-icon class="mr-3 mt-1" color="warning" size="20">mdi-shield-star-outline</v-icon>
+                      <div>
+                        <div class="font-weight-bold text-body-1 mb-1">
+                          {{ t('pricing.custom.features.support.title') }}
+                        </div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          {{ t('pricing.custom.features.support.description') }}
+                        </div>
+                      </div>
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-col>
+            </v-row>
+          </v-card>
         </v-col>
       </v-row>
     </v-container>
@@ -211,10 +427,10 @@
       <v-row justify="center">
         <v-col class="text-center mb-12" cols="12">
           <h2 class="text-h3 font-weight-bold mb-4">
-            Trusted by Developers Worldwide
+            {{ t('testimonials.title') }}
           </h2>
           <p class="text-h6 text-medium-emphasis">
-            See what our users have to say about BuildAI
+            {{ t('testimonials.subtitle') }}
           </p>
         </v-col>
       </v-row>
@@ -263,21 +479,92 @@
         <v-col class="text-center" cols="12" md="8">
           <div class="gradient-bg pa-12 rounded-xl">
             <h2 class="text-h3 font-weight-bold mb-4 text-white">
-              Ready to Build?
+              {{ t('cta.title') }}
             </h2>
             <p class="text-h6 mb-8 text-white text-opacity-90">
-              Join thousands of developers building faster with AI
+              {{ t('cta.subtitle') }}
             </p>
             <v-btn
               class="px-8"
               color="white"
               rounded="pill"
               size="large"
+              to="/signup"
               variant="elevated"
             >
-              Start Building Now
+              {{ t('cta.button') }}
             </v-btn>
           </div>
+        </v-col>
+      </v-row>
+    </v-container>
+
+    <!-- Contact Section -->
+    <v-container id="contact" class="py-16">
+      <v-row justify="center">
+        <v-col class="text-center mb-8" cols="12">
+          <h2 class="text-h3 font-weight-bold mb-4">
+            {{ t('pricing.custom.cta') }}
+          </h2>
+          <p class="text-h6 text-medium-emphasis">
+            {{ locale === 'en' ? 'Tell us about your project and we will get back to you.' : 'Opowiedz nam o swoim projekcie, a my się z Tobą skontaktujemy.' }}
+          </p>
+        </v-col>
+      </v-row>
+
+      <v-row justify="center">
+        <v-col cols="12" md="8" lg="6">
+          <v-card class="contact-card" elevation="6" rounded="xl">
+            <v-card-text class="pa-8">
+              <v-form>
+                <v-text-field
+                  class="mb-4"
+                  :label="locale === 'en' ? 'Full Name' : 'Imię i nazwisko'"
+                  prepend-inner-icon="mdi-account"
+                  rounded="lg"
+                  variant="outlined"
+                />
+
+                <v-text-field
+                  class="mb-4"
+                  label="Email"
+                  prepend-inner-icon="mdi-email"
+                  rounded="lg"
+                  type="email"
+                  variant="outlined"
+                />
+
+                <v-text-field
+                  class="mb-4"
+                  :label="locale === 'en' ? 'Company (Optional)' : 'Firma (Opcjonalnie)'"
+                  prepend-inner-icon="mdi-domain"
+                  rounded="lg"
+                  variant="outlined"
+                />
+
+                <v-textarea
+                  class="mb-6"
+                  :label="locale === 'en' ? 'Project Message' : 'Wiadomość o projekcie'"
+                  prepend-inner-icon="mdi-message-text"
+                  rounded="lg"
+                  rows="5"
+                  variant="outlined"
+                />
+
+                <v-btn
+                  block
+                  class="text-h6 py-4"
+                  color="primary"
+                  rounded="lg"
+                  size="large"
+                  variant="elevated"
+                >
+                  <v-icon start>mdi-send</v-icon>
+                  {{ locale === 'en' ? 'Send Message' : 'Wyślij wiadomość' }}
+                </v-btn>
+              </v-form>
+            </v-card-text>
+          </v-card>
         </v-col>
       </v-row>
     </v-container>
@@ -291,7 +578,7 @@
               <span class="gradient-text">BuildAI</span>
             </h3>
             <p class="text-body-2 text-medium-emphasis mb-4">
-              Building the future of web development with AI-powered automation and intelligent deployment solutions.
+              {{ t('footer.tagline') }}
             </p>
             <div>
               <v-btn
@@ -476,14 +763,16 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
   import { useRouter } from 'vue-router'
   import { useTheme } from 'vuetify'
   import { useAuth } from '@/composables/useAuth'
+  import { useLocale } from '@/composables/useLocale'
 
   const router = useRouter()
   const theme = useTheme()
   const { signIn, signInWithGoogle, signInWithGithub } = useAuth()
+  const { locale, setLocale, toggleLocale, t, tm } = useLocale()
 
   const loginDialog = ref(false)
   const email = ref('')
@@ -495,6 +784,20 @@
 
   function toggleTheme () {
     theme.global.name.value = theme.global.name.value === 'dark' ? 'light' : 'dark'
+  }
+
+  function scrollToPricing () {
+    const target = document.getElementById('pricing')
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  function scrollToContact () {
+    const target = document.getElementById('contact')
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
   }
 
   async function handleLogin () {
@@ -569,93 +872,106 @@
     }
   }
 
-  const features = [
+  const features = computed(() => [
     {
       icon: 'mdi-brain',
-      title: 'AI-Powered',
-      description: 'Let artificial intelligence handle the heavy lifting. Build complex applications with simple prompts.',
+      title: t('features.aiPowered.title'),
+      description: t('features.aiPowered.description'),
       color: 'primary',
     },
     {
       icon: 'mdi-code-tags',
-      title: 'No Code Required',
-      description: 'Focus on your ideas, not syntax. Our platform transforms your vision into production-ready code.',
+      title: t('features.instantDeploy.title'),
+      description: t('features.instantDeploy.description'),
       color: 'secondary',
     },
     {
       icon: 'mdi-rocket-launch-outline',
-      title: 'Auto Deployment',
-      description: 'Push to production instantly. Automated CI/CD pipelines handle everything from build to deployment.',
+      title: t('features.smartOptimization.title'),
+      description: t('features.smartOptimization.description'),
       color: 'accent',
     },
-  ]
+  ])
 
-  const steps = [
-    {
-      icon: 'mdi-web',
-      title: 'Choose Your Domain',
-      description: 'Pick the perfect domain name for your project. We\'ll help you find available options that match your vision.',
-      color: 'primary',
-    },
+  const steps = computed(() => [
     {
       icon: 'mdi-message-text',
-      title: 'Describe Your Vision',
-      description: 'Tell us what you want to build using natural language. No technical jargon required - just explain it like you would to a friend.',
+      title: t('howItWorks.step1.title'),
+      description: t('howItWorks.step1.description'),
       color: 'secondary',
     },
     {
       icon: 'mdi-send',
-      title: 'Submit & Watch Magic',
-      description: 'Our AI agents get to work immediately, generating your entire application with optimal code structure and best practices.',
+      title: t('howItWorks.step2.title'),
+      description: t('howItWorks.step2.description'),
       color: 'accent',
     },
     {
       icon: 'mdi-party-popper',
-      title: 'Enjoy Your Website',
-      description: 'Your site goes live automatically with SSL, CDN, and monitoring. Make changes anytime with simple commands.',
+      title: t('howItWorks.step3.title'),
+      description: t('howItWorks.step3.description'),
       color: 'primary',
     },
-  ]
+    {
+      icon: 'mdi-rocket-launch',
+      title: t('howItWorks.step4.title'),
+      description: t('howItWorks.step4.description'),
+      color: 'success',
+    },
+  ])
 
-  const stats = [
+  const pricingFeatures = computed(() => [
     {
-      value: '50K+',
-      label: 'Websites Built',
+      icon: 'mdi-clock-fast',
+      color: 'primary',
+      title: t('pricing.features.deployTime.title'),
+      description: t('pricing.features.deployTime.description'),
     },
     {
-      value: '99.9%',
-      label: 'Uptime',
+      icon: 'mdi-headset',
+      color: 'secondary',
+      title: t('pricing.features.support.title'),
+      description: t('pricing.features.support.description'),
     },
     {
-      value: '< 5min',
-      label: 'Deploy Time',
+      icon: 'mdi-account-star',
+      color: 'accent',
+      title: t('pricing.features.developers.title'),
+      description: t('pricing.features.developers.description'),
     },
     {
-      value: '24/7',
-      label: 'Support',
+      icon: 'mdi-pencil-ruler',
+      color: 'success',
+      title: t('pricing.features.modifications.title'),
+      description: t('pricing.features.modifications.description'),
     },
-  ]
+    {
+      icon: 'mdi-shield-check',
+      color: 'info',
+      title: t('pricing.features.ssl.title'),
+      description: t('pricing.features.ssl.description'),
+    },
+    {
+      icon: 'mdi-responsive',
+      color: 'warning',
+      title: t('pricing.features.mobile.title'),
+      description: t('pricing.features.mobile.description'),
+    },
+    {
+      icon: 'mdi-speedometer',
+      color: 'error',
+      title: t('pricing.features.fast.title'),
+      description: t('pricing.features.fast.description'),
+    },
+    {
+      icon: 'mdi-google',
+      color: 'primary',
+      title: t('pricing.features.seo.title'),
+      description: t('pricing.features.seo.description'),
+    },
+  ])
 
-  const testimonials = [
-    {
-      text: 'BuildAI transformed my idea into a production app in minutes. The AI understood exactly what I needed and delivered beyond expectations.',
-      name: 'Sarah Chen',
-      role: 'Startup Founder',
-      avatar: 'SC',
-    },
-    {
-      text: 'As a designer with no coding background, BuildAI gave me superpowers. I can now ship full-stack apps without writing a single line of code.',
-      name: 'Marcus Rodriguez',
-      role: 'Product Designer',
-      avatar: 'MR',
-    },
-    {
-      text: 'The deployment automation alone saves me hours every week. This platform is a game-changer for rapid prototyping and MVP development.',
-      name: 'Alex Thompson',
-      role: 'Tech Lead',
-      avatar: 'AT',
-    },
-  ]
+  const testimonials = computed(() => tm('testimonials.items') as Array<{ text: string; name: string; role: string; avatar?: string }>)
 
   const socials = [
     { icon: 'mdi-twitter' },
@@ -671,10 +987,53 @@
 </script>
 
 <style scoped>
+.page-bg {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px circle at 10% 10%, rgba(124, 58, 237, 0.18), transparent 55%),
+    radial-gradient(900px circle at 90% 20%, rgba(16, 185, 129, 0.16), transparent 55%),
+    radial-gradient(700px circle at 50% 80%, rgba(124, 58, 237, 0.12), transparent 60%);
+}
+
+.page-bg::before {
+  content: '';
+  position: absolute;
+  inset: -10% 0 0 0;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(124, 58, 237, 0.18) 1px, transparent 0) 0 0 / 22px 22px;
+  opacity: 0.25;
+  pointer-events: none;
+  mask-image: radial-gradient(closest-side, rgba(0,0,0,0.75), transparent 85%);
+}
+
+.page-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 35%, rgba(0,0,0,0.06));
+  pointer-events: none;
+}
+
 .hero-section {
   min-height: 80vh;
   display: flex;
   align-items: center;
+  position: relative;
+}
+
+#pricing {
+  scroll-margin-top: 16px;
+}
+
+@media (max-width: 600px) {
+  .brand-title {
+    display: none;
+  }
+
+  .lets-go-text {
+    display: none;
+  }
 }
 
 .gradient-text {
@@ -709,6 +1068,31 @@
   50% {
     transform: scale(1.1) rotate(180deg);
     opacity: 0.8;
+  }
+}
+
+.pricing-card {
+  border: 2px solid transparent;
+  background: rgb(var(--v-theme-surface)) padding-box,
+              linear-gradient(135deg, #7C3AED 0%, #10B981 100%) border-box;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.pricing-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.3) !important;
+}
+
+.pricing-left {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border-right: 2px solid rgba(124, 58, 237, 0.1);
+}
+
+@media (max-width: 960px) {
+  .pricing-left {
+    border-right: none;
+    border-bottom: 2px solid rgba(124, 58, 237, 0.1);
   }
 }
 
@@ -769,6 +1153,12 @@
   transform: translateY(-4px);
 }
 
+.contact-card {
+  border: 1px solid rgba(var(--v-theme-primary), 0.15);
+  background: rgba(var(--v-theme-surface), 0.85);
+  backdrop-filter: blur(10px);
+}
+
 .footer-section {
   border-top: 1px solid rgba(var(--v-theme-on-surface), 0.1);
   padding: 48px 0;
@@ -789,5 +1179,47 @@
 
 .footer-links a:hover {
   color: rgb(var(--v-theme-primary));
+}
+
+.flag-circle-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.flag-circle-wrapper .fi {
+  font-size: 30px;
+  position: absolute;
+  transform: scale(1);
+}
+
+.flag-circle-wrapper-menu {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+  margin-right: 12px;
+}
+
+.flag-circle-wrapper-menu .fi {
+  font-size: 39px;
+  position: absolute;
+  transform: scale(1);
+}
+
+.flag-button-circle:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
 }
 </style>

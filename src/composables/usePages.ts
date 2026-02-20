@@ -19,6 +19,7 @@ export interface Page {
   status: 'draft' | 'live'
   userId: string
   generatedHtml?: string
+  hasGenerated?: boolean
   // Full page configuration
   domain?: string
   primaryColor?: string
@@ -48,6 +49,7 @@ export interface PageUpdate {
   name?: string
   description?: string
   icon?: string
+  hasGenerated?: boolean
   color?: string
   status?: 'draft' | 'live'
   domain?: string
